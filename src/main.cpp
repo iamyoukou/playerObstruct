@@ -1,12 +1,8 @@
 #include "common.h"
 
-#include <assimp/Importer.hpp>  // C++ importer interface
-#include <assimp/scene.h>       // Output data structure
-#include <assimp/postprocess.h> // Post processing flags
-
 GLFWwindow *window;
 
-Mesh *mesh;
+Mesh *m;
 
 vec3 lightPosition = vec3(5.f, 5.f, 5.f);
 vec3 lightColor = vec3(1.f, 1.f, 1.f);
@@ -41,127 +37,55 @@ void initTexture();
 void releaseResource();
 
 int main(int argc, char **argv) {
-  // Create an instance of the Importer class
-  Assimp::Importer importer;
+  initGL();
+  initOthers();
 
-  // And have it read the given file with some example postprocessing
-  // Usually - if speed is not the most important aspect for you - you'll
-  // probably to request more postprocessing than we do in this example.
-  string fileName = "./mesh/quads.obj";
-  const aiScene *scene = importer.ReadFile(fileName, 0);
+  // prepare mesh data
+  m = new Mesh("./mesh/boat.obj");
 
-  // If the import failed, report it
-  if (!scene) {
-    std::cout << "Cannot read file " << fileName << '\n';
+  initTexture();
+  initMatrix();
 
-    return EXIT_FAILURE;
+  Point p;
+  p.pos = lightPosition;
+  p.color = vec3(1.f);
+  pts.push_back(p);
+
+  // a rough way to solve cursor position initialization problem
+  // must call glfwPollEvents once to activate glfwSetCursorPos
+  // this is a glfw mechanism problem
+  glfwPollEvents();
+  glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+
+  /* Loop until the user closes the window */
+  while (!glfwWindowShouldClose(window)) {
+    // reset
+    glClearColor(0.f, 0.f, 0.4f, 0.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // view control
+    computeMatricesFromInputs();
+
+    mat4 tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
+    // tempModel = rotate(tempModel, 3.14f / 2.0f, vec3(1, 0, 0));
+    // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+    m->draw(tempModel, view, projection, eyePoint, lightColor, lightPosition,
+            13, 14);
+
+    glUseProgram(pointShader);
+    glUniformMatrix4fv(uniPointM, 1, GL_FALSE, value_ptr(model));
+    glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
+    drawPoints(pts);
+
+    /* Swap front and back buffers */
+    glfwSwapBuffers(window);
+
+    /* Poll for and process events */
+    glfwPollEvents();
   }
 
-  std::cout << "# of meshes: " << scene->mNumMeshes << '\n' << '\n';
-
-  for (size_t i = 0; i < scene->mNumMeshes; i++) {
-    const aiMesh *mesh = scene->mMeshes[i];
-
-    std::cout << "Mesh " << i << ": " << mesh->mName.C_Str() << '\n';
-
-    std::cout << "mVertices: " << '\n';
-    for (size_t i = 0; i < mesh->mNumVertices; i += 3) {
-      std::cout << "(" << mesh->mVertices[i].x << ", " << mesh->mVertices[i].y
-                << ", " << mesh->mVertices[i].z << ") ";
-
-      std::cout << "(" << mesh->mVertices[i + 1].x << ", "
-                << mesh->mVertices[i + 1].y << ", " << mesh->mVertices[i + 1].z
-                << ") ";
-
-      std::cout << "(" << mesh->mVertices[i + 2].x << ", "
-                << mesh->mVertices[i + 2].y << ", " << mesh->mVertices[i + 2].z
-                << ") " << '\n';
-    }
-
-    std::cout << "mNormals: " << '\n';
-    for (size_t i = 0; i < mesh->mNumVertices; i += 3) {
-      std::cout << "(" << mesh->mNormals[i].x << ", " << mesh->mNormals[i].y
-                << ", " << mesh->mNormals[i].z << ") ";
-
-      std::cout << "(" << mesh->mNormals[i + 1].x << ", "
-                << mesh->mNormals[i + 1].y << ", " << mesh->mNormals[i + 1].z
-                << ") ";
-
-      std::cout << "(" << mesh->mNormals[i + 2].x << ", "
-                << mesh->mNormals[i + 2].y << ", " << mesh->mNormals[i + 2].z
-                << ") " << '\n';
-    }
-
-    std::cout << "mTextureCoords: " << '\n';
-    for (size_t i = 0; i < mesh->mNumVertices; i += 3) {
-      std::cout << "(" << mesh->mTextureCoords[0][i].x << ", "
-                << mesh->mTextureCoords[0][i].y << ", "
-                << mesh->mTextureCoords[0][i].z << ") ";
-
-      std::cout << "(" << mesh->mTextureCoords[0][i + 1].x << ", "
-                << mesh->mTextureCoords[0][i + 1].y << ", "
-                << mesh->mTextureCoords[0][i + 1].z << ") ";
-
-      std::cout << "(" << mesh->mTextureCoords[0][i + 2].x << ", "
-                << mesh->mTextureCoords[0][i + 2].y << ", "
-                << mesh->mTextureCoords[0][i + 2].z << ") " << '\n';
-    }
-
-    std::cout << '\n';
-  }
-
-  // initGL();
-  // initOthers();
-  //
-  // // prepare mesh data
-  // mesh = new Mesh("./mesh/cube.obj");
-  //
-  // // assimp import mesh
-  //
-  // initTexture();
-  // initMatrix();
-  //
-  // Point p;
-  // p.pos = lightPosition;
-  // p.color = vec3(1.f);
-  // pts.push_back(p);
-  //
-  // // a rough way to solve cursor position initialization problem
-  // // must call glfwPollEvents once to activate glfwSetCursorPos
-  // // this is a glfw mechanism problem
-  // glfwPollEvents();
-  // glfwSetCursorPos(window, WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
-  //
-  // /* Loop until the user closes the window */
-  // while (!glfwWindowShouldClose(window)) {
-  //   // reset
-  //   glClearColor(0.f, 0.f, 0.4f, 0.f);
-  //   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  //
-  //   // view control
-  //   computeMatricesFromInputs();
-  //
-  //   mat4 tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
-  //   // tempModel = rotate(tempModel, 3.14f / 2.0f, vec3(1, 0, 0));
-  //   // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
-  //   mesh->draw(tempModel, view, projection, eyePoint, lightColor,
-  //   lightPosition,
-  //              13, 14);
-  //
-  //   glUseProgram(pointShader);
-  //   glUniformMatrix4fv(uniPointM, 1, GL_FALSE, value_ptr(model));
-  //   glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
-  //   glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
-  //   drawPoints(pts);
-  //
-  //   /* Swap front and back buffers */
-  //   glfwSwapBuffers(window);
-  //
-  //   /* Poll for and process events */
-  //   glfwPollEvents();
-  // }
-  //
-  // releaseResource();
+  releaseResource();
 
   return EXIT_SUCCESS;
 }
@@ -321,13 +245,13 @@ void initMatrix() {
 }
 
 void initTexture() {
-  mesh->setTexture(mesh->tboBase, 13, "./res/stone_basecolor.jpg", FIF_JPEG);
-  mesh->setTexture(mesh->tboNormal, 14, "./res/stone_normal.jpg", FIF_JPEG);
+  m->setTexture(m->tboBase, 13, "./res/stone_basecolor.jpg", FIF_JPEG);
+  m->setTexture(m->tboNormal, 14, "./res/stone_normal.jpg", FIF_JPEG);
 }
 
 void releaseResource() {
   glfwTerminate();
   FreeImage_DeInitialise();
 
-  delete mesh;
+  delete m;
 }

@@ -13,16 +13,24 @@ LINK=-L/usr/local/Cellar/glew/2.1.0_1/lib -lglfw \
 -framework GLUT -framework OpenGL -framework Cocoa
 SRC_DIR=/Users/YJ-work/cpp/myGL_glfw/assimpTest/src
 
-all: main
+all: main test
 
 main: main.o common.o
-	$(CXX) $(LINK) $^ -o main
+	$(CXX) $(LINK) $^ -o $@
+
+test: test.o common.o
+	$(CXX) $(LINK) $^ -o $@
+
 
 main.o: $(SRC_DIR)/main.cpp
-	$(CXX) $(COMPILE) $^ -o main.o
+	$(CXX) $(COMPILE) $^ -o $@
 
 common.o: $(SRC_DIR)/common.cpp
-	$(CXX) $(COMPILE) $^ -o common.o
+	$(CXX) $(COMPILE) $^ -o $@
+
+test.o: $(SRC_DIR)/test.cpp
+	$(CXX) $(COMPILE) $^ -o $@
+
 
 .PHONY: cleanObj
 
