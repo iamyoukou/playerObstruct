@@ -22,6 +22,9 @@ using namespace glm;
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+#define SCENE 0
+#define PLAYER 1
+
 /* Define a 3D point */
 typedef struct {
   vec3 pos;
@@ -45,6 +48,9 @@ public:
   GLint uniModel, uniView, uniProjection;
   GLint uniEyePoint, uniLightColor, uniLightPosition;
   GLint uniTexBase, uniTexNormal;
+  GLint uniBeta;
+
+  int type;
 
   // aabb
   vec3 min, max;
@@ -52,7 +58,7 @@ public:
   mat4 model, view, projection;
 
   /* Constructors */
-  Mesh(const string);
+  Mesh(const string, int);
   ~Mesh();
 
   /* Member functions */

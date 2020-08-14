@@ -244,7 +244,9 @@ void drawPoints(vector<Point> &pts) { // array data
 }
 
 /* Mesh class */
-Mesh::Mesh(const string fileName) {
+Mesh::Mesh(const string fileName, int pType = SCENE) {
+  type = pType;
+
   // import mesh
   scene = importer.ReadFile(fileName, aiProcess_CalcTangentSpace);
 
@@ -263,7 +265,11 @@ Mesh::~Mesh() {
 }
 
 void Mesh::initShader() {
-  shader = buildShader("./shader/vsPhong.glsl", "./shader/fsPhong.glsl");
+  if (type == SCENE) {
+    shader = buildShader("./shader/vsScene.glsl", "./shader/fsScene.glsl");
+  } else if (type == PLAYER) {
+    shader = buildShader("./shader/vsPlayer.glsl", "./shader/fsPlayer.glsl");
+  }
 }
 
 void Mesh::initUniform() {
@@ -273,8 +279,12 @@ void Mesh::initUniform() {
   uniEyePoint = myGetUniformLocation(shader, "eyePoint");
   uniLightColor = myGetUniformLocation(shader, "lightColor");
   uniLightPosition = myGetUniformLocation(shader, "lightPosition");
-  uniTexBase = myGetUniformLocation(shader, "texBase");
-  uniTexNormal = myGetUniformLocation(shader, "texNormal");
+  // uniTexBase = myGetUniformLocation(shader, "texBase");
+  // uniTexNormal = myGetUniformLocation(shader, "texNormal");
+
+  if (type == PLAYER) {
+    uniBeta = myGetUniformLocation(shader, "beta");
+  }
 }
 
 void Mesh::initBuffers() {
@@ -378,8 +388,8 @@ void Mesh::draw(mat4 M, mat4 V, mat4 P, vec3 eye, vec3 lightColor,
   glUniform3fv(uniLightColor, 1, value_ptr(lightColor));
   glUniform3fv(uniLightPosition, 1, value_ptr(lightPosition));
 
-  glUniform1i(uniTexBase, unitBaseColor); // change base color
-  glUniform1i(uniTexNormal, unitNormal);  // change normal
+  // glUniform1i(uniTexBase, unitBaseColor);
+  // glUniform1i(uniTexNormal, unitNormal);
 
   for (size_t i = 0; i < scene->mNumMeshes; i++) {
     int numVtxs = scene->mMeshes[i]->mNumVertices;

@@ -4,7 +4,7 @@ GLFWwindow *window;
 
 bool saveTrigger = false;
 
-Mesh *m;
+Mesh *mainScene, *player;
 
 vec3 lightPosition = vec3(5.f, 5.f, 5.f);
 vec3 lightColor = vec3(1.f, 1.f, 1.f);
@@ -25,6 +25,7 @@ vec3 eyeDirection =
 vec3 up = vec3(0.f, 1.f, 0.f);
 
 GLuint fboDepth, tboDepth;
+GLint uniTexDepth;
 
 // test
 vector<Point> pts;
@@ -40,15 +41,15 @@ void initMatrix();
 void initTexture();
 void releaseResource();
 void initFrameBuffer();
-
-GLint uniTexDepth;
+void saveDepth();
 
 int main(int argc, char **argv) {
   initGL();
   initOthers();
 
   // prepare mesh data
-  m = new Mesh("./mesh/boat.obj");
+  mainScene = new Mesh("./mesh/scene.obj", SCENE);
+  player = new Mesh("./mesh/torus.obj", PLAYER);
 
   initTexture();
   initMatrix();
@@ -70,7 +71,6 @@ int main(int argc, char **argv) {
   while (!glfwWindowShouldClose(window)) {
     // reset
     glClearColor(0.f, 0.f, 0.4f, 0.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // view control
     computeMatricesFromInputs();
@@ -83,58 +83,44 @@ int main(int argc, char **argv) {
     // glBindFramebuffer(GL_FRAMEBUFFER, fboDepth);
     // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //
-    // m->draw(tempModel, view, projection, eyePoint, lightColor, lightPosition,
-    //         13, 14);
+    // mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
+    //                 lightPosition, 13, 14);
+    //
+    // if (saveTrigger) {
+    //   saveDepth();
+    // }
 
     // render to main screen
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // render all objects once
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    m->draw(tempModel, view, projection, eyePoint, lightColor, lightPosition,
-            13, 14);
+    tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
+    glDepthFunc(GL_LESS);
+    mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
+                    lightPosition, 13, 14);
 
-    glUseProgram(pointShader);
-    glUniformMatrix4fv(uniPointM, 1, GL_FALSE, value_ptr(model));
-    glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
-    glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
-    drawPoints(pts);
+    glUseProgram(player->shader);
+    glUniform1f(player->uniBeta, 0.0);
+    tempModel = translate(mat4(1.f), vec3(2.5f, 0.5f, 0.f));
+    tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+    player->draw(tempModel, view, projection, eyePoint, lightColor,
+                 lightPosition, -1, -1);
 
-    if (saveTrigger) {
-      string output = "depth.bmp";
+    // for blocked player
+    glUseProgram(player->shader);
+    glUniform1f(player->uniBeta, 1.0);
+    tempModel = translate(mat4(1.f), vec3(2.5f, 0.5f, 0.f));
+    tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+    glDepthFunc(GL_GREATER);
+    player->draw(tempModel, view, projection, eyePoint, lightColor,
+                 lightPosition, -1, -1);
 
-      int width = WINDOW_WIDTH * 2;
-      int height = WINDOW_HEIGHT * 2;
-
-      GLfloat *depth = new GLfloat[width * height];
-      glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT,
-                   (GLvoid *)depth);
-
-      FIBITMAP *bitmap = FreeImage_Allocate(width, height, 32);
-      RGBQUAD color;
-
-      float near = 0.1, far = 1000.0;
-
-      for (size_t i = 0; i < height; i++) {
-        for (size_t j = 0; j < width; j++) {
-          float z = depth[j + i * width];
-
-          // for visualization
-          z = z * 2.0 - 1.0;
-          z = (2.0 * near * far) / (far + near - z * (far - near));
-
-          color.rgbRed = z;
-          color.rgbGreen = z;
-          color.rgbBlue = z;
-
-          FreeImage_SetPixelColor(bitmap, j, i, &color);
-        }
-      }
-
-      FreeImage_Save(FIF_BMP, bitmap, output.c_str(), 0);
-      std::cout << "Image saved." << '\n';
-      saveTrigger = false;
-
-      delete[] depth;
-    }
+    // glUseProgram(pointShader);
+    // glUniformMatrix4fv(uniPointM, 1, GL_FALSE, value_ptr(model));
+    // glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
+    // glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
+    // drawPoints(pts);
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);
@@ -309,15 +295,18 @@ void initMatrix() {
 }
 
 void initTexture() {
-  m->setTexture(m->tboBase, 13, "./res/stone_basecolor.jpg", FIF_JPEG);
-  m->setTexture(m->tboNormal, 14, "./res/stone_normal.jpg", FIF_JPEG);
+  mainScene->setTexture(mainScene->tboBase, 13, "./res/stone_basecolor.jpg",
+                        FIF_JPEG);
+  mainScene->setTexture(mainScene->tboNormal, 14, "./res/stone_normal.jpg",
+                        FIF_JPEG);
 }
 
 void releaseResource() {
   glfwTerminate();
   FreeImage_DeInitialise();
 
-  delete m;
+  delete mainScene;
+  delete player;
 }
 
 void initFrameBuffer() {
@@ -338,4 +327,42 @@ void initFrameBuffer() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
   glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tboDepth, 0);
+}
+
+void saveDepth() {
+  string output = "depth.bmp";
+
+  int width = WINDOW_WIDTH * 2;
+  int height = WINDOW_HEIGHT * 2;
+
+  GLfloat *depth = new GLfloat[width * height];
+  glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT,
+               (GLvoid *)depth);
+
+  FIBITMAP *bitmap = FreeImage_Allocate(width, height, 32);
+  RGBQUAD color;
+
+  float near = 0.1, far = 1000.0;
+
+  for (size_t i = 0; i < height; i++) {
+    for (size_t j = 0; j < width; j++) {
+      float z = depth[j + i * width];
+
+      // for visualization
+      z = z * 2.0 - 1.0;
+      z = (2.0 * near * far) / (far + near - z * (far - near));
+
+      color.rgbRed = z;
+      color.rgbGreen = z;
+      color.rgbBlue = z;
+
+      FreeImage_SetPixelColor(bitmap, j, i, &color);
+    }
+  }
+
+  FreeImage_Save(FIF_BMP, bitmap, output.c_str(), 0);
+  std::cout << "Image saved." << '\n';
+  saveTrigger = false;
+
+  delete[] depth;
 }
