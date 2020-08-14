@@ -105,19 +105,31 @@ int main(int argc, char **argv) {
       int height = WINDOW_HEIGHT * 2;
 
       GLfloat *depth = new GLfloat[width * height];
+      glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT,
+                   (GLvoid *)depth);
 
-      FIBITMAP *outputImage = FreeImage_AllocateT(FIT_FLOAT, width, height);
-      glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, // depth);
-                   (GLvoid *)FreeImage_GetBits(outputImage));
-      FreeImage_Save(FIF_BMP, outputImage, output.c_str(), 0);
+      FIBITMAP *bitmap = FreeImage_Allocate(width, height, 32);
+      RGBQUAD color;
 
-      // for (size_t i = 0; i < height; i++) {
-      //   for (size_t j = 0; j < width; j++) {
-      //     std::cout << depth[j + i * width] << " ";
-      //   }
-      //   std::cout << '\n';
-      // }
+      float near = 0.1, far = 1000.0;
 
+      for (size_t i = 0; i < height; i++) {
+        for (size_t j = 0; j < width; j++) {
+          float z = depth[j + i * width];
+
+          // for visualization
+          z = z * 2.0 - 1.0;
+          z = (2.0 * near * far) / (far + near - z * (far - near));
+
+          color.rgbRed = z;
+          color.rgbGreen = z;
+          color.rgbBlue = z;
+
+          FreeImage_SetPixelColor(bitmap, j, i, &color);
+        }
+      }
+
+      FreeImage_Save(FIF_BMP, bitmap, output.c_str(), 0);
       std::cout << "Image saved." << '\n';
       saveTrigger = false;
 
