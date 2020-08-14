@@ -10,22 +10,21 @@ vec3 lightPosition = vec3(5.f, 5.f, 5.f);
 vec3 lightColor = vec3(1.f, 1.f, 1.f);
 
 /* for view control */
-float verticalAngle = -2.11949;
-float horizontalAngle = 6.27904;
+float verticalAngle = -1.9257;
+float horizontalAngle = 0.925862;
 float initialFoV = 45.0f;
 float speed = 5.0f;
 float mouseSpeed = 0.005f;
 float nearPlane = 0.01f, farPlane = 1000.f;
 
 mat4 model, view, projection;
-vec3 eyePoint = vec3(5.171673, 2.241387, -0.270274);
+vec3 eyePoint = vec3(7.117970, 3.615396, 4.588941);
 vec3 eyeDirection =
     vec3(sin(verticalAngle) * cos(horizontalAngle), cos(verticalAngle),
          sin(verticalAngle) * sin(horizontalAngle));
 vec3 up = vec3(0.f, 1.f, 0.f);
 
 GLuint fboDepth, tboDepth;
-GLint uniTexDepth;
 
 // test
 vector<Point> pts;
@@ -49,7 +48,7 @@ int main(int argc, char **argv) {
 
   // prepare mesh data
   mainScene = new Mesh("./mesh/scene.obj", SCENE);
-  player = new Mesh("./mesh/torus.obj", PLAYER);
+  player = new Mesh("./mesh/monkey.obj", PLAYER);
 
   initTexture();
   initMatrix();
@@ -59,7 +58,7 @@ int main(int argc, char **argv) {
   p.color = vec3(1.f);
   pts.push_back(p);
 
-  // initFrameBuffer();
+  initFrameBuffer();
 
   // a rough way to solve cursor position initialization problem
   // must call glfwPollEvents once to activate glfwSetCursorPos
@@ -80,39 +79,38 @@ int main(int argc, char **argv) {
     // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
 
     // render to framebuffer
-    // glBindFramebuffer(GL_FRAMEBUFFER, fboDepth);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //
-    // mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
-    //                 lightPosition, 13, 14);
-    //
-    // if (saveTrigger) {
-    //   saveDepth();
-    // }
+    glBindFramebuffer(GL_FRAMEBUFFER, fboDepth);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDepthFunc(GL_LESS);
+
+    mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
+                    lightPosition, 13, 14);
+
+    if (saveTrigger) {
+      saveDepth();
+    }
 
     // render to main screen
     // render all objects once
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
     glDepthFunc(GL_LESS);
+    tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
     mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
                     lightPosition, 13, 14);
-
+    tempModel = translate(mat4(1.f), vec3(2.5f, 1.f, 0.f));
+    // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
     glUseProgram(player->shader);
-    glUniform1f(player->uniBeta, 0.0);
-    tempModel = translate(mat4(1.f), vec3(2.5f, 0.5f, 0.f));
-    tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+    glUniform1i(player->uniGREATER, 0);
     player->draw(tempModel, view, projection, eyePoint, lightColor,
                  lightPosition, -1, -1);
 
-    // for blocked player
-    glUseProgram(player->shader);
-    glUniform1f(player->uniBeta, 1.0);
-    tempModel = translate(mat4(1.f), vec3(2.5f, 0.5f, 0.f));
-    tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
     glDepthFunc(GL_GREATER);
+    tempModel = translate(mat4(1.f), vec3(2.5f, 1.f, 0.f));
+    // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+    glUseProgram(player->shader);
+    glUniform1i(player->uniGREATER, 1);
     player->draw(tempModel, view, projection, eyePoint, lightColor,
                  lightPosition, -1, -1);
 
@@ -351,6 +349,7 @@ void saveDepth() {
       // for visualization
       z = z * 2.0 - 1.0;
       z = (2.0 * near * far) / (far + near - z * (far - near));
+      // z /= far;
 
       color.rgbRed = z;
       color.rgbGreen = z;

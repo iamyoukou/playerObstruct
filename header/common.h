@@ -48,7 +48,7 @@ public:
   GLint uniModel, uniView, uniProjection;
   GLint uniEyePoint, uniLightColor, uniLightPosition;
   GLint uniTexBase, uniTexNormal;
-  GLint uniBeta;
+  GLint uniTexDepth, uniGREATER;
 
   int type;
 

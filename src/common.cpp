@@ -283,7 +283,8 @@ void Mesh::initUniform() {
   // uniTexNormal = myGetUniformLocation(shader, "texNormal");
 
   if (type == PLAYER) {
-    uniBeta = myGetUniformLocation(shader, "beta");
+    uniTexDepth = myGetUniformLocation(shader, "texDepth");
+    uniGREATER = myGetUniformLocation(shader, "GREATER");
   }
 }
 
@@ -390,6 +391,10 @@ void Mesh::draw(mat4 M, mat4 V, mat4 P, vec3 eye, vec3 lightColor,
 
   // glUniform1i(uniTexBase, unitBaseColor);
   // glUniform1i(uniTexNormal, unitNormal);
+
+  if (type == PLAYER) {
+    glUniform1i(uniTexDepth, 3);
+  }
 
   for (size_t i = 0; i < scene->mNumMeshes; i++) {
     int numVtxs = scene->mMeshes[i]->mNumVertices;
