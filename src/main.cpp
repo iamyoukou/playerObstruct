@@ -2,6 +2,8 @@
 
 GLFWwindow *window;
 
+bool saveTrigger = false;
+
 Mesh *m;
 
 vec3 lightPosition = vec3(5.f, 5.f, 5.f);
@@ -22,6 +24,8 @@ vec3 eyeDirection =
          sin(verticalAngle) * sin(horizontalAngle));
 vec3 up = vec3(0.f, 1.f, 0.f);
 
+GLuint fboDepth, tboDepth;
+
 // test
 vector<Point> pts;
 GLuint pointShader;
@@ -35,6 +39,9 @@ void initOthers();
 void initMatrix();
 void initTexture();
 void releaseResource();
+void initFrameBuffer();
+
+GLint uniTexDepth;
 
 int main(int argc, char **argv) {
   initGL();
@@ -50,6 +57,8 @@ int main(int argc, char **argv) {
   p.pos = lightPosition;
   p.color = vec3(1.f);
   pts.push_back(p);
+
+  // initFrameBuffer();
 
   // a rough way to solve cursor position initialization problem
   // must call glfwPollEvents once to activate glfwSetCursorPos
@@ -69,6 +78,17 @@ int main(int argc, char **argv) {
     mat4 tempModel = translate(mat4(1.f), vec3(2.5f, 0.f, 0.f));
     // tempModel = rotate(tempModel, 3.14f / 2.0f, vec3(1, 0, 0));
     // tempModel = scale(tempModel, vec3(0.5, 0.5, 0.5));
+
+    // render to framebuffer
+    // glBindFramebuffer(GL_FRAMEBUFFER, fboDepth);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //
+    // m->draw(tempModel, view, projection, eyePoint, lightColor, lightPosition,
+    //         13, 14);
+
+    // render to main screen
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     m->draw(tempModel, view, projection, eyePoint, lightColor, lightPosition,
             13, 14);
 
@@ -77,6 +97,32 @@ int main(int argc, char **argv) {
     glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
     glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
     drawPoints(pts);
+
+    if (saveTrigger) {
+      string output = "depth.bmp";
+
+      int width = WINDOW_WIDTH * 2;
+      int height = WINDOW_HEIGHT * 2;
+
+      GLfloat *depth = new GLfloat[width * height];
+
+      FIBITMAP *outputImage = FreeImage_AllocateT(FIT_FLOAT, width, height);
+      glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, // depth);
+                   (GLvoid *)FreeImage_GetBits(outputImage));
+      FreeImage_Save(FIF_BMP, outputImage, output.c_str(), 0);
+
+      // for (size_t i = 0; i < height; i++) {
+      //   for (size_t j = 0; j < width; j++) {
+      //     std::cout << depth[j + i * width] << " ";
+      //   }
+      //   std::cout << '\n';
+      // }
+
+      std::cout << "Image saved." << '\n';
+      saveTrigger = false;
+
+      delete[] depth;
+    }
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);
@@ -172,6 +218,12 @@ void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
                 << "horizontalAngle: " << fmod(horizontalAngle, 6.28f) << endl;
       break;
     }
+    case GLFW_KEY_Y: {
+      saveTrigger = true;
+
+      break;
+    }
+
     default:
       break;
     }
@@ -254,4 +306,24 @@ void releaseResource() {
   FreeImage_DeInitialise();
 
   delete m;
+}
+
+void initFrameBuffer() {
+  // framebuffer object
+  glGenFramebuffers(1, &fboDepth);
+  glBindFramebuffer(GL_FRAMEBUFFER, fboDepth);
+
+  glActiveTexture(GL_TEXTURE0 + 3);
+  glGenTextures(1, &tboDepth);
+  glBindTexture(GL_TEXTURE_2D, tboDepth);
+
+  // On OSX, must use WINDOW_WIDTH * 2 and WINDOW_HEIGHT * 2, don't know why
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, WINDOW_WIDTH * 2,
+               WINDOW_HEIGHT * 2, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tboDepth, 0);
 }

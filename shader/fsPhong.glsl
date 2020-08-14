@@ -9,6 +9,8 @@ uniform vec3 lightColor;
 uniform vec3 lightPosition;
 uniform vec3 eyePoint;
 
+float near = 0.1, far = 100.0;
+
 out vec4 outputColor;
 
 // compute fragment normal from a normal map
@@ -63,5 +65,10 @@ void main() {
   outputColor += diffuse * dc * attenuation;
   outputColor += specular * sc * attenuation;
 
-  outputColor = vec4(max(dot(worldN, L), 0.0));
+  // outputColor = vec4(max(dot(worldN, L), 0.0));
+  float z = gl_FragCoord.z;
+  z = z * 2.0 - 1.0;
+  z = (2.0 * near * far) / (far + near - z * (far - near));
+  z /= far;
+  outputColor = vec4(vec3(z), 1.0);
 }
