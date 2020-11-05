@@ -8,6 +8,8 @@ With this feature, players can easily locate themselves even in a complicated sc
 After searching and obtaining advices from my friends,
 I've achieved some similar effects.
 
+![output](output.gif)
+
 # Algorithm
 
 As shown in the following image,
@@ -32,12 +34,6 @@ The overall procedure is:
 ![self_overlap](./image/self_overlap.png)
 
 In addition, `gl_FragCoord.z` represents the depth value of the current fragment.
-
-# Result
-
-![result](./image/result.png)
-
-In the image, the light green color represents the blocked part of the player.
 
 # Reference
 

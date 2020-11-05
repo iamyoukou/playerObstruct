@@ -3,3 +3,6 @@ main
 test
 *.o
 *.bmp
+result/
+palette.png
+*.mp4

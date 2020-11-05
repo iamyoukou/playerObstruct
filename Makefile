@@ -1,17 +1,17 @@
-CXX=llvm-g++
+CXX=g++-10
 COMPILE=-g -c -std=c++17 \
 -I/usr/local/Cellar/glew/2.1.0_1/include \
 -I/usr/local/Cellar/glfw/3.3.2/include \
 -I/usr/local/Cellar/freeimage/3.18.0/include \
 -I/usr/local/Cellar/glm/0.9.9.8/include \
 -I/usr/local/Cellar/assimp/5.0.1/include \
--I/Users/YJ-work/cpp/myGL_glfw/assimpTest/header
+-I/Users/YJ-work/cpp/myGL_glfw/playerObstruct/header
 LINK=-L/usr/local/Cellar/glew/2.1.0_1/lib -lglfw \
 -L/usr/local/Cellar/glfw/3.3.2/lib -lGLEW \
 -L/usr/local/Cellar/freeimage/3.18.0/lib -lfreeimage \
 -L/usr/local/Cellar/assimp/5.0.1/lib -lassimp \
 -framework GLUT -framework OpenGL -framework Cocoa
-SRC_DIR=/Users/YJ-work/cpp/myGL_glfw/assimpTest/src
+SRC_DIR=/Users/YJ-work/cpp/myGL_glfw/playerObstruct/src
 
 all: main test
 
@@ -32,7 +32,10 @@ test.o: $(SRC_DIR)/test.cpp
 	$(CXX) $(COMPILE) $^ -o $@
 
 
-.PHONY: cleanObj
+.PHONY: cleanObj cleanImg
 
 cleanObj:
-	rm -f *.o
+	rm -vf *.o
+
+cleanImg:
+	rm -vf ./result/*

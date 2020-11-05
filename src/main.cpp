@@ -3,6 +3,7 @@
 GLFWwindow *window;
 
 bool saveTrigger = false;
+int frameNumber = 0;
 
 Mesh *mainScene, *player;
 
@@ -10,15 +11,15 @@ vec3 lightPosition = vec3(5.f, 5.f, 5.f);
 vec3 lightColor = vec3(1.f, 1.f, 1.f);
 
 /* for view control */
-float verticalAngle = -1.9257;
-float horizontalAngle = 0.925862;
+float verticalAngle = -1.86804;
+float horizontalAngle = 2.58694;
 float initialFoV = 45.0f;
 float speed = 5.0f;
 float mouseSpeed = 0.005f;
 float nearPlane = 0.01f, farPlane = 1000.f;
 
 mat4 model, view, projection;
-vec3 eyePoint = vec3(7.117970, 3.615396, 4.588941);
+vec3 eyePoint = vec3(-8.314790, 2.536293, 6.664634);
 vec3 eyeDirection =
     vec3(sin(verticalAngle) * cos(horizontalAngle), cos(verticalAngle),
          sin(verticalAngle) * sin(horizontalAngle));
@@ -86,9 +87,9 @@ int main(int argc, char **argv) {
     mainScene->draw(tempModel, view, projection, eyePoint, lightColor,
                     lightPosition, 13, 14);
 
-    if (saveTrigger) {
-      saveDepth();
-    }
+    // if (saveTrigger) {
+    //   saveDepth();
+    // }
 
     // render to main screen
     // render all objects once
@@ -119,6 +120,28 @@ int main(int argc, char **argv) {
     // glUniformMatrix4fv(uniPointV, 1, GL_FALSE, value_ptr(view));
     // glUniformMatrix4fv(uniPointP, 1, GL_FALSE, value_ptr(projection));
     // drawPoints(pts);
+
+    eyePoint += vec3(0.015f, 0.f, -0.0f);
+    horizontalAngle -= 0.001f;
+
+    if (saveTrigger) {
+      string dir = "./result/output";
+      // zero padding
+      // e.g. "output0001.bmp"
+      string num = to_string(frameNumber);
+      num = string(4 - num.length(), '0') + num;
+      string output = dir + num + ".bmp";
+
+      // must use WINDOW_WIDTH * 2 and WINDOW_HEIGHT * 2 on OSX, don't know why
+      FIBITMAP *outputImage =
+          FreeImage_AllocateT(FIT_UINT32, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2);
+      glReadPixels(0, 0, WINDOW_WIDTH * 2, WINDOW_HEIGHT * 2, GL_BGRA,
+                   GL_UNSIGNED_INT_8_8_8_8_REV,
+                   (GLvoid *)FreeImage_GetBits(outputImage));
+      FreeImage_Save(FIF_BMP, outputImage, output.c_str(), 0);
+      std::cout << output << " saved." << '\n';
+      frameNumber++;
+    }
 
     /* Swap front and back buffers */
     glfwSwapBuffers(window);
@@ -215,7 +238,7 @@ void keyCallback(GLFWwindow *keyWnd, int key, int scancode, int action,
       break;
     }
     case GLFW_KEY_Y: {
-      saveTrigger = true;
+      saveTrigger = !saveTrigger;
 
       break;
     }
